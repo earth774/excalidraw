@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React + TS</title>
+    <script>
+      window.name = "codesandbox";
+      window.EXCALIDRAW_ASSET_PATH =
+        "https://esm.sh/@excalidraw/excalidraw@0.18.0/dist/prod/";
+    </script>
+  </head>
+  <body style="margin: 0; padding: 0;">
+    <div id="root"></div>
+    <script type="module">
+      import * as ExcalidrawLib from "@excalidraw/excalidraw";
+
+      console.log(ExcalidrawLib);
+      window.ExcalidrawLib = ExcalidrawLib;
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
