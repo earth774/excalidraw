@@ -493,30 +493,45 @@ function RoomPage({ roomId }: { roomId: string }) {
               return;
             }
 
-            // Only save if there are actual changes
-            if (elements.length > 0 || Object.keys(appState).length > 0) {
-              // Clean up appState to remove problematic properties
-              const cleanAppState = { ...appState };
-              
-              // Remove collaborators if it's not an array
-              if (cleanAppState.collaborators && !Array.isArray(cleanAppState.collaborators)) {
-                delete cleanAppState.collaborators;
-              }
-              
-              // Remove other potentially problematic properties
-              const problematicKeys = ['collaborators', 'cursorButton', 'scrollToCenter'];
-              problematicKeys.forEach(key => {
-                if (cleanAppState[key] && typeof cleanAppState[key] === 'object') {
-                  delete cleanAppState[key];
-                }
-              });
+            // Check if there are meaningful changes
+            const hasElements = elements.length > 0;
+            const hasAppStateChanges = Object.keys(appState).length > 0;
+            
+            // Only proceed if there are actual changes
+            if (!hasElements && !hasAppStateChanges) {
+              return;
+            }
 
-              const dataToSave: DrawingData = {
-                elements,
-                appState: cleanAppState,
-                timestamp: Date.now()
-              };
+            // Clean up appState to remove problematic properties
+            const cleanAppState = { ...appState };
+            
+            // Remove collaborators if it's not an array
+            if (cleanAppState.collaborators && !Array.isArray(cleanAppState.collaborators)) {
+              delete cleanAppState.collaborators;
+            }
+            
+            // Remove other potentially problematic properties
+            const problematicKeys = ['collaborators', 'cursorButton', 'scrollToCenter'];
+            problematicKeys.forEach(key => {
+              if (cleanAppState[key] && typeof cleanAppState[key] === 'object') {
+                delete cleanAppState[key];
+              }
+            });
+
+            const dataToSave: DrawingData = {
+              elements,
+              appState: cleanAppState,
+              timestamp: Date.now()
+            };
+
+            // Create a string representation for comparison
+            const dataString = JSON.stringify(dataToSave);
+            
+            // Only save if data has actually changed
+            if (dataString !== lastSavedDataRef.current) {
               saveDrawingData(dataToSave);
+            } else {
+              console.log('No changes detected, skipping save');
             }
           } catch (error) {
             console.error('Error in onChange handler:', error);
