@@ -197,6 +197,7 @@ function RoomPage({ roomId }: { roomId: string }) {
   useEffect(() => {
     // Check if there's saved data for this room
     const savedTimestamp = localStorage.getItem(`excalidraw-room-${roomId}-last-saved`);
+    console.log(lastSaved,isSaving,hasUnsavedChanges);
     
     if (savedTimestamp) {
       setLastSaved(savedTimestamp);
@@ -332,11 +333,11 @@ function RoomPage({ roomId }: { roomId: string }) {
   }, [roomId]);
 
   // Manual save function
-  const handleManualSave = useCallback(() => {
-    // This would need to be implemented with Excalidraw's API
-    // For now, we'll just show a message
-    alert('ฟีเจอร์การบันทึกด้วยตนเองจะพร้อมใช้งานในเวอร์ชันถัดไป');
-  }, []);
+  // const handleManualSave = useCallback(() => {
+  //   // This would need to be implemented with Excalidraw's API
+  //   // For now, we'll just show a message
+  //   alert('ฟีเจอร์การบันทึกด้วยตนเองจะพร้อมใช้งานในเวอร์ชันถัดไป');
+  // }, []);
 
   if (isLoading) {
     return (
@@ -365,7 +366,86 @@ function RoomPage({ roomId }: { roomId: string }) {
 
   return (
     <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
-      <div
+      {/* <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '10px',
+        zIndex: 1000,
+        background: 'rgba(255, 255, 255, 0.95)',
+        padding: '0.75rem 1rem',
+        borderRadius: '4px',
+        border: '1px solid #ddd',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+        minWidth: '200px'
+      }}>
+        <Link
+          to="/"
+          style={{
+            color: '#007bff',
+            textDecoration: 'none',
+            fontSize: '0.9rem',
+            fontWeight: '500'
+          }}
+        >
+          ← กลับไปหน้าหลัก
+        </Link>
+        
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.5rem',
+          fontSize: '0.8rem'
+        }}>
+          {isSaving ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#007bff' }}>
+              <div style={{
+                width: '12px',
+                height: '12px',
+                border: '2px solid #f3f3f3',
+                borderTop: '2px solid #007bff',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+              กำลังบันทึก...
+            </div>
+          ) : hasUnsavedChanges ? (
+            <div style={{ color: '#ffc107' }}>
+              ⚠️ มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก
+            </div>
+          ) : (
+            <div style={{ color: '#28a745' }}>
+              ✅ บันทึกแล้ว
+            </div>
+          )}
+        </div>
+
+        {lastSaved && (
+          <div style={{ fontSize: '0.8rem', color: '#666' }}>
+            💾 บันทึกล่าสุด: {new Date(parseInt(lastSaved)).toLocaleString('th-TH')}
+          </div>
+        )}
+
+        <button
+          onClick={handleManualSave}
+          style={{
+            padding: '0.25rem 0.5rem',
+            background: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '3px',
+            cursor: 'pointer',
+            fontSize: '0.8rem',
+            marginTop: '0.25rem'
+          }}
+        >
+          💾 บันทึกด้วยตนเอง
+        </button>
+      </div> */}
+
+<div
         style={{
           position: 'absolute',
           top: '15px',
