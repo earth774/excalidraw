@@ -191,7 +191,7 @@ function RoomPage({ roomId }: { roomId: string }) {
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const excalidrawRef = useRef<React.ComponentType<Record<string, unknown>> | null>(null);
-  const saveTimeoutRef = useRef<number | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedDataRef = useRef<string>('');
 
   useEffect(() => {
