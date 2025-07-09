@@ -60,7 +60,7 @@ function HomePage() {
       fontFamily: 'Arial, sans-serif'
     }}>
       <h1 style={{ textAlign: 'center', color: '#333', marginBottom: '2rem' }}>
-        🎨 Excalidraw Rooms
+        🎨 Excalidraw Local Room
       </h1>
       
       <div style={{ 
