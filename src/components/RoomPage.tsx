@@ -75,7 +75,10 @@ export function RoomPage({ roomId }: RoomPageProps) {
           display: 'flex',
           alignItems: 'center',
           minWidth: 'unset',
-          height: '40px'
+          height: '40px',
+          // Hide on mobile (max-width: 600px)
+          // This is a quick inline style approach; for production, use a CSS class and media query.
+          ...(window.innerWidth <= 600 ? { display: 'none' } : {})
         }}
       >
         <Link
