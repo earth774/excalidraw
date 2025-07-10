@@ -3,30 +3,51 @@ import { StorageManager } from '../utils';
 
 export function useRooms() {
   const [rooms, setRooms] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load existing rooms from localStorage
+  // Load existing rooms from IndexedDB
   useEffect(() => {
-    const savedRooms = StorageManager.getRooms();
-    setRooms(savedRooms);
+    const loadRooms = async () => {
+      try {
+        setIsLoading(true);
+        await StorageManager.initialize();
+        const savedRooms = await StorageManager.getRooms();
+        setRooms(savedRooms);
+      } catch (error) {
+        console.error('Error loading rooms:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRooms();
   }, []);
 
-  const createRoom = useCallback((roomId: string) => {
+  const createRoom = useCallback(async (roomId: string) => {
     if (roomId.trim()) {
-      const newRooms = [...rooms, roomId.trim()];
-      setRooms(newRooms);
-      StorageManager.saveRooms(newRooms);
+      try {
+        await StorageManager.addRoom(roomId.trim());
+        const updatedRooms = await StorageManager.getRooms();
+        setRooms(updatedRooms);
+      } catch (error) {
+        console.error('Error creating room:', error);
+      }
     }
-  }, [rooms]);
+  }, []);
 
-  const deleteRoom = useCallback((roomToDelete: string) => {
-    const newRooms = rooms.filter(room => room !== roomToDelete);
-    setRooms(newRooms);
-    StorageManager.saveRooms(newRooms);
-    StorageManager.deleteRoom(roomToDelete);
-  }, [rooms]);
+  const deleteRoom = useCallback(async (roomToDelete: string) => {
+    try {
+      await StorageManager.deleteRoom(roomToDelete);
+      const updatedRooms = await StorageManager.getRooms();
+      setRooms(updatedRooms);
+    } catch (error) {
+      console.error('Error deleting room:', error);
+    }
+  }, []);
 
   return {
     rooms,
+    isLoading,
     createRoom,
     deleteRoom,
   };

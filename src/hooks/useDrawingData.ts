@@ -12,19 +12,32 @@ export function useDrawingData(roomId: string) {
 
   // Initialize lastSaved state on mount
   useEffect(() => {
-    const timestamp = StorageManager.getLastSavedTimestamp(roomId);
-    if (timestamp) {
-      setLastSaved(timestamp);
-    }
+    const loadLastSaved = async () => {
+      try {
+        const timestamp = await StorageManager.getLastSavedTimestamp(roomId);
+        if (timestamp) {
+          setLastSaved(timestamp);
+        }
+      } catch (error) {
+        console.error('Error loading last saved timestamp:', error);
+      }
+    };
+
+    loadLastSaved();
   }, [roomId]);
 
   // Load initial data
-  const loadDrawingData = useCallback((): DrawingData | null => {
-    const data = StorageManager.loadDrawingData(roomId);
-    if (data) {
-      lastSavedDataRef.current = JSON.stringify(data);
+  const loadDrawingData = useCallback(async (): Promise<DrawingData | null> => {
+    try {
+      const data = await StorageManager.loadDrawingData(roomId);
+      if (data) {
+        lastSavedDataRef.current = JSON.stringify(data);
+      }
+      return data;
+    } catch (error) {
+      console.error('Error loading drawing data:', error);
+      return null;
     }
-    return data;
   }, [roomId]);
 
   // Save drawing data with debouncing
@@ -85,16 +98,16 @@ export function useDrawingData(roomId: string) {
       setHasUnsavedChanges(true);
 
       // Debounce the actual save operation
-      saveTimeoutRef.current = setTimeout(() => {
+      saveTimeoutRef.current = setTimeout(async () => {
         try {
-          StorageManager.saveDrawingData(roomId, cleanData);
+          await StorageManager.saveDrawingData(roomId, cleanData);
           const timestamp = Date.now().toString();
           setLastSaved(timestamp);
           setHasUnsavedChanges(false);
           setIsSaving(false);
           lastSavedDataRef.current = dataString;
         } catch (storageError) {
-          console.error('Error saving to localStorage:', storageError);
+          console.error('Error saving to IndexedDB:', storageError);
           setIsSaving(false);
           setHasUnsavedChanges(false);
         }

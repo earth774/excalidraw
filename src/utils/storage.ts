@@ -1,107 +1,83 @@
 import type { DrawingData } from '../types';
-import { STORAGE_KEYS, PROBLEMATIC_APP_STATE_KEYS } from '../constants';
+import { IndexedDBStorage } from './indexedDBStorage';
 
 export class StorageManager {
-  // Room management
-  static getRooms(): string[] {
+  // Initialize IndexedDB and migrate data if needed
+  static async initialize(): Promise<void> {
     try {
-      const savedRooms = localStorage.getItem(STORAGE_KEYS.ROOMS);
-      return savedRooms ? JSON.parse(savedRooms) : [];
+      await IndexedDBStorage.migrateFromLocalStorage();
+    } catch (error) {
+      console.error('Error initializing storage:', error);
+    }
+  }
+
+  // Room management
+  static async getRooms(): Promise<string[]> {
+    try {
+      return await IndexedDBStorage.getRooms();
     } catch (error) {
       console.error('Error loading rooms:', error);
       return [];
     }
   }
 
-  static saveRooms(rooms: string[]): void {
+  static async saveRooms(rooms: string[]): Promise<void> {
     try {
-      localStorage.setItem(STORAGE_KEYS.ROOMS, JSON.stringify(rooms));
+      await IndexedDBStorage.saveRooms(rooms);
     } catch (error) {
       console.error('Error saving rooms:', error);
     }
   }
 
-  static addRoom(roomId: string): void {
-    const rooms = this.getRooms();
-    if (!rooms.includes(roomId)) {
-      const newRooms = [...rooms, roomId];
-      this.saveRooms(newRooms);
+  static async addRoom(roomId: string): Promise<void> {
+    try {
+      await IndexedDBStorage.addRoom(roomId);
+    } catch (error) {
+      console.error('Error adding room:', error);
     }
   }
 
-  static deleteRoom(roomId: string): void {
-    const rooms = this.getRooms();
-    const newRooms = rooms.filter(room => room !== roomId);
-    this.saveRooms(newRooms);
-    
-    // Also delete room data
-    localStorage.removeItem(STORAGE_KEYS.ROOM_DATA(roomId));
-    localStorage.removeItem(STORAGE_KEYS.ROOM_LAST_SAVED(roomId));
+  static async deleteRoom(roomId: string): Promise<void> {
+    try {
+      await IndexedDBStorage.deleteRoom(roomId);
+    } catch (error) {
+      console.error('Error deleting room:', error);
+    }
   }
 
   // Drawing data management
-  static saveDrawingData(roomId: string, data: DrawingData): void {
+  static async saveDrawingData(roomId: string, data: DrawingData): Promise<void> {
     try {
-      const cleanData = this.cleanDrawingData(data);
-      const dataString = JSON.stringify(cleanData);
-      localStorage.setItem(STORAGE_KEYS.ROOM_DATA(roomId), dataString);
-      
-      const timestamp = Date.now().toString();
-      localStorage.setItem(STORAGE_KEYS.ROOM_LAST_SAVED(roomId), timestamp);
+      await IndexedDBStorage.saveDrawingData(roomId, data);
     } catch (error) {
       console.error('Error saving drawing data:', error);
     }
   }
 
-  static loadDrawingData(roomId: string): DrawingData | null {
+  static async loadDrawingData(roomId: string): Promise<DrawingData | null> {
     try {
-      const savedData = localStorage.getItem(STORAGE_KEYS.ROOM_DATA(roomId));
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        return this.cleanDrawingData(parsedData);
-      }
+      return await IndexedDBStorage.loadDrawingData(roomId);
     } catch (error) {
       console.error('Error loading drawing data:', error);
-      // Clear corrupted data
-      this.deleteRoom(roomId);
+      return null;
     }
-    return null;
   }
 
-  static getLastSavedTimestamp(roomId: string): string | null {
-    return localStorage.getItem(STORAGE_KEYS.ROOM_LAST_SAVED(roomId));
+  static async getLastSavedTimestamp(roomId: string): Promise<string | null> {
+    try {
+      return await IndexedDBStorage.getLastSavedTimestamp(roomId);
+    } catch (error) {
+      console.error('Error getting last saved timestamp:', error);
+      return null;
+    }
   }
 
-  static hasRoomData(roomId: string): boolean {
-    return localStorage.getItem(STORAGE_KEYS.ROOM_DATA(roomId)) !== null;
-  }
-
-  // Helper methods
-  private static cleanDrawingData(data: DrawingData): DrawingData {
-    // Ensure elements is an array
-    if (!Array.isArray(data.elements)) {
-      data.elements = [];
+  static async hasRoomData(roomId: string): Promise<boolean> {
+    try {
+      return await IndexedDBStorage.hasRoomData(roomId);
+    } catch (error) {
+      console.error('Error checking room data:', error);
+      return false;
     }
-
-    // Ensure appState is an object and clean it
-    if (!data.appState || typeof data.appState !== 'object') {
-      data.appState = {};
-    }
-
-    const cleanAppState = { ...data.appState };
-    
-    // Remove problematic properties
-    PROBLEMATIC_APP_STATE_KEYS.forEach(key => {
-      if (cleanAppState[key] && typeof cleanAppState[key] === 'object') {
-        delete cleanAppState[key];
-      }
-    });
-
-    return {
-      elements: data.elements,
-      appState: cleanAppState,
-      files: data.files,
-      timestamp: Date.now()
-    };
   }
 } 

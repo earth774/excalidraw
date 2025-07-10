@@ -12,6 +12,7 @@
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.0",
     "@types/react-router-dom": "^5.3.3",
+    "idb": "^8.0.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.3"

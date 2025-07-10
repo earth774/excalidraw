@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useRooms } from '../hooks';
 import { StorageManager } from '../utils';
@@ -11,7 +11,32 @@ export function HomePage() {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const { rooms, createRoom, deleteRoom } = useRooms();
+  const [roomData, setRoomData] = useState<Record<string, { hasData: boolean; lastSaved: string | null }>>({});
+  const { rooms, isLoading, createRoom, deleteRoom } = useRooms();
+
+  // Load room data for display
+  useEffect(() => {
+    const loadRoomData = async () => {
+      const newRoomData: Record<string, { hasData: boolean; lastSaved: string | null }> = {};
+      
+      for (const room of rooms) {
+        try {
+          const hasData = await StorageManager.hasRoomData(room);
+          const lastSaved = await StorageManager.getLastSavedTimestamp(room);
+          newRoomData[room] = { hasData, lastSaved };
+        } catch (error) {
+          console.error(`Error loading data for room ${room}:`, error);
+          newRoomData[room] = { hasData: false, lastSaved: null };
+        }
+      }
+      
+      setRoomData(newRoomData);
+    };
+
+    if (!isLoading) {
+      loadRoomData();
+    }
+  }, [rooms, isLoading]);
 
   // Filtered and paginated rooms
   const filteredRooms = useMemo(() =>
@@ -24,16 +49,16 @@ export function HomePage() {
     page * ROOMS_PER_PAGE
   );
 
-  const handleCreateRoom = useCallback(() => {
+  const handleCreateRoom = useCallback(async () => {
     if (roomId.trim()) {
-      createRoom(roomId.trim());
+      await createRoom(roomId.trim());
       setRoomId('');
       setShowModal(false);
     }
   }, [roomId, createRoom]);
 
-  const handleDeleteRoom = useCallback((roomToDelete: string) => {
-    deleteRoom(roomToDelete);
+  const handleDeleteRoom = useCallback(async (roomToDelete: string) => {
+    await deleteRoom(roomToDelete);
   }, [deleteRoom]);
 
   // Reset page if search changes
@@ -41,6 +66,16 @@ export function HomePage() {
     setSearch(e.target.value);
     setPage(1);
   };
+
+  if (isLoading) {
+    return (
+      <div className="container">
+        <div className="loading-message">
+          กำลังโหลดข้อมูล...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
@@ -108,8 +143,7 @@ export function HomePage() {
       ) : (
         <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
           {paginatedRooms.map((room) => {
-            const hasData = StorageManager.hasRoomData(room);
-            const lastSaved = StorageManager.getLastSavedTimestamp(room);
+            const roomInfo = roomData[room];
             return (
               <div
                 key={room}
@@ -117,11 +151,11 @@ export function HomePage() {
               >
                 <div className="room-info">
                   <span className="room-name">{room}</span>
-                  {hasData && (
+                  {roomInfo?.hasData && (
                     <div className="room-meta">
                       💾 มีข้อมูลบันทึกไว้
-                      {lastSaved && (
-                        <span> (อัปเดตล่าสุด: {new Date(parseInt(lastSaved)).toLocaleString('th-TH')})</span>
+                      {roomInfo.lastSaved && (
+                        <span> (อัปเดตล่าสุด: {new Date(parseInt(roomInfo.lastSaved)).toLocaleString('th-TH')})</span>
                       )}
                     </div>
                   )}

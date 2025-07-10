@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useDrawingData } from '../hooks';
 import { UI_CONSTANTS } from '../constants';
@@ -13,6 +13,7 @@ interface RoomPageProps {
 
 export function RoomPage({ roomId }: RoomPageProps) {
   const [isLoading, setIsLoading] = useState(true);
+  const [initialData, setInitialData] = useState<DrawingData | null>(null);
   const excalidrawRef = useRef<React.ComponentType<Record<string, unknown>> | null>(null);
   
   const {
@@ -20,8 +21,20 @@ export function RoomPage({ roomId }: RoomPageProps) {
     saveDrawingData,
   } = useDrawingData(roomId);
 
-  // Memoize the initial data to prevent re-renders
-  const initialData = useMemo(() => loadDrawingData(), [loadDrawingData]);
+  // Load initial data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await loadDrawingData();
+        setInitialData(data);
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+        setInitialData(null);
+      }
+    };
+
+    loadData();
+  }, [loadDrawingData]);
 
   useEffect(() => {
     // Simulate loading time for Excalidraw
