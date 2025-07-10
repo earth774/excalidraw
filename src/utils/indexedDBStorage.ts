@@ -136,15 +136,19 @@ class IndexedDBStorageManager {
     try {
       const cleanData = this.cleanDrawingData(data);
       const db = await this.getDB();
-      
+
+      // Deep clone cleanData to avoid non-cloneable values (functions, etc.)
+      // Use JSON serialization to ensure only serializable data is stored
+      const serializableData = JSON.parse(JSON.stringify(cleanData));
+
       const roomData: RoomDrawingData = {
         roomId,
-        data: cleanData,
+        data: serializableData,
         timestamp: Date.now(),
       };
 
       await db.put(STORES.ROOM_DATA, roomData);
-      
+
       // Update last saved timestamp
       const lastSaved: RoomLastSaved = {
         roomId,
