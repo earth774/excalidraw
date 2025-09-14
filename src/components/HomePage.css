@@ -173,6 +173,19 @@
   cursor: not-allowed;
 }
 
+.modal-btn-danger {
+  background: #d73a49;
+  color: white;
+  border: none;
+  font-weight: 600;
+}
+
+.modal-message {
+  margin: 0 0 1.5rem 0;
+  color: #24292f;
+  line-height: 1.5;
+}
+
 .search-section {
   margin-bottom: 1.5rem;
   display: flex;

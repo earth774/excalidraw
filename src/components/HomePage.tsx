@@ -9,6 +9,8 @@ const ROOMS_PER_PAGE = 10;
 export function HomePage() {
   const [roomId, setRoomId] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<string>('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [roomData, setRoomData] = useState<Record<string, { hasData: boolean; lastSaved: string | null }>>({});
@@ -57,9 +59,23 @@ export function HomePage() {
     }
   }, [roomId, createRoom]);
 
-  const handleDeleteRoom = useCallback(async (roomToDelete: string) => {
-    await deleteRoom(roomToDelete);
-  }, [deleteRoom]);
+  const handleDeleteRoom = useCallback((roomToDelete: string) => {
+    setRoomToDelete(roomToDelete);
+    setShowDeleteModal(true);
+  }, []);
+
+  const confirmDeleteRoom = useCallback(async () => {
+    if (roomToDelete) {
+      await deleteRoom(roomToDelete);
+      setShowDeleteModal(false);
+      setRoomToDelete('');
+    }
+  }, [roomToDelete, deleteRoom]);
+
+  const cancelDeleteRoom = useCallback(() => {
+    setShowDeleteModal(false);
+    setRoomToDelete('');
+  }, []);
 
   // Reset page if search changes
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,6 +135,34 @@ export function HomePage() {
                 className="modal-btn modal-btn-primary"
               >
                 สร้างห้อง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for delete confirmation */}
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2 className="modal-title">ยืนยันการลบ</h2>
+            <p className="modal-message">
+              คุณต้องการลบห้อง "{roomToDelete}" ใช่หรือไม่?
+              <br />
+              <strong>การดำเนินการนี้ไม่สามารถย้อนกลับได้</strong>
+            </p>
+            <div className="modal-buttons">
+              <button
+                onClick={cancelDeleteRoom}
+                className="modal-btn"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={confirmDeleteRoom}
+                className="modal-btn modal-btn-danger"
+              >
+                ลบห้อง
               </button>
             </div>
           </div>
