@@ -10,9 +10,9 @@ export const UI_CONSTANTS = {
   DEBOUNCE_DELAY: 300,
   LOADING_DELAY: 1000,
   IMAGE_OPTIMIZATION: {
-    MAX_WIDTH: 800,
-    MAX_HEIGHT: 800,
-    QUALITY: 0.7,
+    MAX_WIDTH: 2048,
+    MAX_HEIGHT: 2048,
+    QUALITY: 0.9,
   },
 } as const;
 

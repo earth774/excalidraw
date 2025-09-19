@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { StorageManager } from '../utils';
+import { StorageManager, IndexedDBStorage, FileCache } from '../utils';
 
 export function useRooms() {
   const [rooms, setRooms] = useState<string[]>([]);
@@ -37,6 +37,23 @@ export function useRooms() {
 
   const deleteRoom = useCallback(async (roomToDelete: string) => {
     try {
+      // Attempt remote delete of R2 images if any
+      try {
+        const fileIds = await IndexedDBStorage.getRoomFileIds(roomToDelete);
+        if (fileIds.length > 0) {
+          // Optional: if using only blob storage, skip remote delete.
+          // If you later enable R2, uncomment below call.
+          // await fetch('/api/r2-bulk-delete', {
+          //   method: 'POST',
+          //   headers: { 'Content-Type': 'application/json' },
+          //   body: JSON.stringify({ keys }),
+          // });
+          FileCache.revokeMany(fileIds);
+        }
+      } catch (e) {
+        console.warn('Failed to bulk delete R2 objects (non-fatal):', e);
+      }
+
       await StorageManager.deleteRoom(roomToDelete);
       const updatedRooms = await StorageManager.getRooms();
       setRooms(updatedRooms);

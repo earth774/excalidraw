@@ -2,6 +2,37 @@ import { UI_CONSTANTS, OPTIMIZABLE_IMAGE_TYPES } from '../constants';
 import type { FileData, OptimizedFileData } from '../types';
 
 export class ImageOptimizer {
+  static async fileToWebPBlob(file: File, maxDim = UI_CONSTANTS.IMAGE_OPTIMIZATION.MAX_WIDTH, quality = UI_CONSTANTS.IMAGE_OPTIMIZATION.QUALITY): Promise<Blob> {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const imgEl = new Image();
+      imgEl.onload = () => resolve(imgEl);
+      imgEl.onerror = reject;
+      imgEl.src = url;
+    });
+    const deviceScale = Math.max(1, Math.round((window.devicePixelRatio || 1) * 1.5)); // 1.5x multiplier for extra sharpness
+    const targetMax = maxDim * deviceScale; // Higher scale for sharper images
+    const scale = Math.min(1, targetMax / Math.max(img.width, img.height));
+    const width = Math.max(1, Math.round(img.width * scale));
+    const height = Math.max(1, Math.round(img.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas not supported');
+    // higher quality scaling with better interpolation
+    ctx.imageSmoothingEnabled = true;
+    // Some TS DOM lib versions may not include imageSmoothingQuality
+    (ctx as CanvasRenderingContext2D & { imageSmoothingQuality?: 'low' | 'medium' | 'high' }).imageSmoothingQuality = 'high';
+    
+    // Additional quality settings for sharper rendering
+    ctx.textBaseline = 'top';
+    ctx.drawImage(img, 0, 0, width, height);
+    const mime = file.type === 'image/png' ? 'image/png' : 'image/webp';
+    const dataUrl = canvas.toDataURL(mime, quality);
+    const res = await fetch(dataUrl);
+    return await res.blob();
+  }
   static async optimizeImage(
     dataURL: string,
     mimeType: string,

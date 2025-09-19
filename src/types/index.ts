@@ -1,8 +1,17 @@
 // Define types for drawing data
+export interface StoredFileMeta {
+  id: string;
+  mimeType: string;
+  name: string;
+  size: number;
+  dataURL?: string;
+  r2Url?: string;
+}
+
 export interface DrawingData {
   elements: unknown[];
   appState: Record<string, unknown>;
-  files?: Record<string, unknown>;
+  files?: Record<string, StoredFileMeta>;
   timestamp: number;
 }
 

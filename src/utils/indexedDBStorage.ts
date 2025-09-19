@@ -4,13 +4,15 @@ import type { DrawingData } from '../types';
 import { PROBLEMATIC_APP_STATE_KEYS } from '../constants';
 
 const DB_NAME = 'excalidraw-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // Store names
 const STORES = {
   ROOMS: 'rooms',
   ROOM_DATA: 'room-data',
   ROOM_LAST_SAVED: 'room-last-saved',
+  FILE_BLOBS: 'file-blobs',
+  ROOM_FILES: 'room-files',
 } as const;
 
 interface RoomData {
@@ -52,6 +54,15 @@ class IndexedDBStorageManager {
 
         if (!db.objectStoreNames.contains(STORES.ROOM_LAST_SAVED)) {
           db.createObjectStore(STORES.ROOM_LAST_SAVED, { keyPath: 'roomId' });
+        }
+
+        // v2: blobs per file and mapping from room -> fileIds
+        if (!db.objectStoreNames.contains(STORES.FILE_BLOBS)) {
+          db.createObjectStore(STORES.FILE_BLOBS, { keyPath: 'fileId' });
+        }
+        if (!db.objectStoreNames.contains(STORES.ROOM_FILES)) {
+          const store = db.createObjectStore(STORES.ROOM_FILES, { keyPath: 'roomId' });
+          store.createIndex('roomId', 'roomId');
         }
       },
     });
@@ -126,6 +137,17 @@ class IndexedDBStorageManager {
       
       // Delete last saved timestamp
       await db.delete(STORES.ROOM_LAST_SAVED, roomId);
+
+      // Delete local blobs mapped to this room
+      const mapping = await db.get(STORES.ROOM_FILES, roomId);
+      if (mapping && Array.isArray(mapping.fileIds)) {
+        const tx = db.transaction(STORES.FILE_BLOBS, 'readwrite');
+        for (const fileId of mapping.fileIds) {
+          await tx.store.delete(fileId);
+        }
+        await tx.done;
+      }
+      await db.delete(STORES.ROOM_FILES, roomId);
     } catch (error) {
       console.error('Error deleting room:', error);
     }
@@ -282,6 +304,29 @@ class IndexedDBStorageManager {
       files: data.files,
       timestamp: Date.now()
     };
+  }
+
+  // File blob helpers
+  async putFileBlob(fileId: string, blob: Blob): Promise<void> {
+    const db = await this.getDB();
+    await db.put(STORES.FILE_BLOBS, { fileId, blob });
+  }
+
+  async getFileBlob(fileId: string): Promise<Blob | undefined> {
+    const db = await this.getDB();
+    const rec = await db.get(STORES.FILE_BLOBS, fileId);
+    return rec?.blob as Blob | undefined;
+  }
+
+  async mapRoomFiles(roomId: string, fileIds: string[]): Promise<void> {
+    const db = await this.getDB();
+    await db.put(STORES.ROOM_FILES, { roomId, fileIds });
+  }
+
+  async getRoomFileIds(roomId: string): Promise<string[]> {
+    const db = await this.getDB();
+    const rec = await db.get(STORES.ROOM_FILES, roomId);
+    return rec?.fileIds ?? [];
   }
 
   // Migration helper from localStorage
