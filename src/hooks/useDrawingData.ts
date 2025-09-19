@@ -44,6 +44,28 @@ export function useDrawingData(roomId: string) {
                   f.dataURL = f.r2Url;
                   FileCache.setObjectUrl(fid, f.r2Url);
                 }
+              } else {
+                // Validate existing dataURL to prevent atob errors
+                if (f.dataURL && typeof f.dataURL === 'string' && f.dataURL.startsWith('data:')) {
+                  try {
+                    // Test if the base64 part is valid
+                    const base64Part = f.dataURL.split(',')[1];
+                    if (base64Part) {
+                      atob(base64Part); // This will throw if invalid
+                    }
+                  } catch {
+                    console.warn(`Invalid base64 data in file ${fid}, removing dataURL`);
+                    f.dataURL = undefined;
+                    // Try to get from local blob or R2
+                    const blob = await IndexedDBStorage.getFileBlob(fid);
+                    if (blob) {
+                      f.dataURL = FileCache.put(fid, blob);
+                    } else if (f.r2Url) {
+                      f.dataURL = f.r2Url;
+                      FileCache.setObjectUrl(fid, f.r2Url);
+                    }
+                  }
+                }
               }
             }
           }
@@ -103,9 +125,38 @@ export function useDrawingData(roomId: string) {
             try {
               if (!FileCache.has(fid)) {
                 if (!fileData.dataURL) { continue; }
+                
+                // Validate dataURL format before processing
+                if (!fileData.dataURL.startsWith('data:') || !fileData.dataURL.includes(',')) {
+                  console.warn(`Invalid dataURL format for file ${fid}, skipping`);
+                  continue;
+                }
+                
                 const response = await fetch(fileData.dataURL);
+                if (!response.ok) {
+                  console.warn(`Failed to fetch dataURL for file ${fid}, skipping`);
+                  continue;
+                }
+                
                 const srcBlob = await response.blob();
-                const optimizedBlob = srcBlob.type.startsWith('image/') ? await ImageOptimizer.fileToWebPBlob(new File([srcBlob], fileData.name || `${fid}.webp`, { type: srcBlob.type })) : srcBlob;
+                
+                // Handle different file types appropriately
+                let optimizedBlob: Blob;
+                if (srcBlob.type.startsWith('image/')) {
+                  if (srcBlob.type === 'image/svg+xml') {
+                    console.log(`Keeping SVG as-is for ${fid}`);
+                    // Keep SVG as-is to preserve vector quality
+                    optimizedBlob = srcBlob;
+                  } else {
+                    console.log(`Optimizing raster image for ${fid}`);
+                    // Optimize raster images
+                    optimizedBlob = await ImageOptimizer.fileToWebPBlob(new File([srcBlob], fileData.name || `${fid}.webp`, { type: srcBlob.type }));
+                  }
+                } else {
+                  console.log(`Keeping non-image file as-is for ${fid}`);
+                  // Keep non-image files as-is
+                  optimizedBlob = srcBlob;
+                }
                 await IndexedDBStorage.putFileBlob(fid, optimizedBlob);
                 FileCache.put(fid, optimizedBlob);
                 if (!roomFileIds.includes(fid)) roomFileIds.push(fid);

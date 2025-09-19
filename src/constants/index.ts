@@ -28,4 +28,5 @@ export const OPTIMIZABLE_IMAGE_TYPES = [
   'image/jpeg',
   'image/png',
   'image/webp',
+  'image/svg+xml',
 ] as const; 

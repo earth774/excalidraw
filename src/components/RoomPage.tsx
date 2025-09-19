@@ -1,11 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { Link } from 'react-router-dom';
 import { useDrawingData } from '../hooks';
 import { UI_CONSTANTS } from '../constants';
 import type { DrawingData, StoredFileMeta } from '../types';
+// Use generic types to avoid complex Excalidraw type imports
+type ExcalidrawElement = unknown;
+type BinaryFiles = Record<string, unknown>;
 
-// Get Excalidraw component from window
-const { Excalidraw } = window.ExcalidrawLib;
+// Lazy load Excalidraw to reduce initial bundle size
+const Excalidraw = lazy(() => 
+  import('@excalidraw/excalidraw').then(module => ({ 
+    default: module.Excalidraw 
+  }))
+);
 
 interface RoomPageProps {
   roomId: string;
@@ -14,7 +21,7 @@ interface RoomPageProps {
 export function RoomPage({ roomId }: RoomPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [initialData, setInitialData] = useState<DrawingData | null>(null);
-  const excalidrawRef = useRef<React.ComponentType<Record<string, unknown>> | null>(null);
+  // const excalidrawRef = useRef<React.ComponentType<Record<string, unknown>> | null>(null);
   
   const {
     loadDrawingData,
@@ -109,11 +116,28 @@ export function RoomPage({ roomId }: RoomPageProps) {
         </Link>
       </div>
       
-      <Excalidraw 
-        ref={excalidrawRef}
-        roomId={roomId}
-        initialData={initialData}
-        onChange={(elements: unknown[], appState: Record<string, unknown>, files: unknown[]) => {
+      <Suspense fallback={
+        <div style={{
+          height: '100vh',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          background: '#f8f9fa'
+        }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            border: '3px solid #f3f3f3',
+            borderTop: '3px solid #007bff',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+        </div>
+      }>
+        <Excalidraw 
+          initialData={initialData as unknown as Record<string, unknown>}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onChange={(elements: readonly ExcalidrawElement[], appState: any, files: BinaryFiles) => {
           try {
             // Validate input data
             if (!Array.isArray(elements)) {
@@ -139,23 +163,55 @@ export function RoomPage({ roomId }: RoomPageProps) {
             const cleanAppState = { ...appState };
             
             // Remove collaborators if it's not an array
-            if (cleanAppState.collaborators && !Array.isArray(cleanAppState.collaborators)) {
+            if ('collaborators' in cleanAppState && cleanAppState.collaborators && !Array.isArray(cleanAppState.collaborators)) {
               delete cleanAppState.collaborators;
             }
             
             // Remove other potentially problematic properties
             const problematicKeys = ['collaborators', 'cursorButton', 'scrollToCenter'];
             problematicKeys.forEach(key => {
-              if (cleanAppState[key] && typeof cleanAppState[key] === 'object') {
+              if (key in cleanAppState && cleanAppState[key] && typeof cleanAppState[key] === 'object') {
                 delete cleanAppState[key];
               }
             });
+
+            // Clean files data to prevent atob errors
+            let cleanFiles: Record<string, StoredFileMeta> | undefined;
+            if (files && Object.keys(files).length > 0) {
+              cleanFiles = {};
+              for (const [fid, file] of Object.entries(files as Record<string, StoredFileMeta>)) {
+                if (file && typeof file === 'object' && file.dataURL) {
+                  // Validate dataURL before saving
+                  try {
+                    if (file.dataURL.startsWith('data:')) {
+                      const base64Part = file.dataURL.split(',')[1];
+                      if (base64Part) {
+                        atob(base64Part); // Test if valid base64
+                      }
+                    }
+                    cleanFiles[fid] = file;
+                  } catch {
+                    console.warn(`Invalid base64 data in file ${fid}, skipping`);
+                    // Create a clean file entry without dataURL
+                    cleanFiles[fid] = {
+                      id: file.id || fid,
+                      mimeType: file.mimeType || 'application/octet-stream',
+                      name: file.name || `file-${fid}`,
+                      size: file.size || 0,
+                      r2Url: file.r2Url
+                    };
+                  }
+                } else {
+                  cleanFiles[fid] = file;
+                }
+              }
+            }
 
             const dataToSaveWithFiles: DrawingData = {
               elements,
               appState: cleanAppState,
               timestamp: Date.now(),
-              files: files && Object.keys(files).length > 0 ? files as unknown as Record<string, StoredFileMeta> : undefined
+              files: cleanFiles
             };
 
             // Save the data
@@ -164,7 +220,8 @@ export function RoomPage({ roomId }: RoomPageProps) {
             console.error('Error in onChange handler:', error);
           }
         }}
-      />
+        />
+      </Suspense>
     </div>
   );
 } 

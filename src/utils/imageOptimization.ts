@@ -3,6 +3,12 @@ import type { FileData, OptimizedFileData } from '../types';
 
 export class ImageOptimizer {
   static async fileToWebPBlob(file: File, maxDim = UI_CONSTANTS.IMAGE_OPTIMIZATION.MAX_WIDTH, quality = UI_CONSTANTS.IMAGE_OPTIMIZATION.QUALITY): Promise<Blob> {
+    // Handle SVG files differently - keep as SVG to preserve vector quality
+    if (file.type === 'image/svg+xml') {
+      const svgText = await file.text();
+      return new Blob([svgText], { type: 'image/svg+xml' });
+    }
+
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
       const url = URL.createObjectURL(file);
       const imgEl = new Image();
@@ -40,6 +46,11 @@ export class ImageOptimizer {
     maxHeight = UI_CONSTANTS.IMAGE_OPTIMIZATION.MAX_HEIGHT,
     quality = UI_CONSTANTS.IMAGE_OPTIMIZATION.QUALITY
   ): Promise<string> {
+    // Skip optimization for SVG files
+    if (mimeType === 'image/svg+xml') {
+      return dataURL;
+    }
+
     return new Promise((resolve) => {
       const img = new window.Image();
       
@@ -100,15 +111,21 @@ export class ImageOptimizer {
         const fileData = file as FileData;
         let optimizedDataURL = fileData.dataURL;
         
-        if (fileData.mimeType && OPTIMIZABLE_IMAGE_TYPES.includes(fileData.mimeType as 'image/jpeg' | 'image/png' | 'image/webp')) {
-          // Only optimize if it's an image
-          optimizedDataURL = await this.optimizeImage(
-            fileData.dataURL,
-            fileData.mimeType,
-            UI_CONSTANTS.IMAGE_OPTIMIZATION.MAX_WIDTH,
-            UI_CONSTANTS.IMAGE_OPTIMIZATION.MAX_HEIGHT,
-            UI_CONSTANTS.IMAGE_OPTIMIZATION.QUALITY
-          );
+        if (fileData.mimeType && OPTIMIZABLE_IMAGE_TYPES.includes(fileData.mimeType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/svg+xml')) {
+          // Only optimize if it's an image, but skip SVG optimization
+          if (fileData.mimeType === 'image/svg+xml') {
+            // Keep SVG as-is to preserve vector quality
+            optimizedDataURL = fileData.dataURL;
+          } else {
+            // Optimize raster images
+            optimizedDataURL = await this.optimizeImage(
+              fileData.dataURL,
+              fileData.mimeType,
+              UI_CONSTANTS.IMAGE_OPTIMIZATION.MAX_WIDTH,
+              UI_CONSTANTS.IMAGE_OPTIMIZATION.MAX_HEIGHT,
+              UI_CONSTANTS.IMAGE_OPTIMIZATION.QUALITY
+            );
+          }
         }
         
         filesWithBase64[fileId] = {
