@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useDrawingData } from '../hooks';
 import { UI_CONSTANTS } from '../constants';
-import type { DrawingData } from '../types';
+import type { DrawingData, StoredFileMeta } from '../types';
 
 // Get Excalidraw component from window
 const { Excalidraw } = window.ExcalidrawLib;
@@ -155,7 +155,7 @@ export function RoomPage({ roomId }: RoomPageProps) {
               elements,
               appState: cleanAppState,
               timestamp: Date.now(),
-              files: files && Object.keys(files).length > 0 ? files as unknown as Record<string, unknown> : undefined
+              files: files && Object.keys(files).length > 0 ? files as unknown as Record<string, StoredFileMeta> : undefined
             };
 
             // Save the data
