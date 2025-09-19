@@ -331,6 +331,13 @@
   color: white;
 }
 
+.room-btn-secondary {
+  background: #f6f8fa;
+  color: #24292f;
+  border: 1px solid #d1d5da;
+  cursor: pointer;
+}
+
 .room-btn-danger {
   background: #d73a49;
   color: white;

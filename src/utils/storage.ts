@@ -45,6 +45,15 @@ export class StorageManager {
     }
   }
 
+  static async renameRoom(oldRoomId: string, newRoomId: string): Promise<void> {
+    try {
+      await IndexedDBStorage.renameRoom(oldRoomId, newRoomId);
+    } catch (error) {
+      console.error('Error renaming room:', error);
+      throw error;
+    }
+  }
+
   // Drawing data management
   static async saveDrawingData(roomId: string, data: DrawingData): Promise<void> {
     try {

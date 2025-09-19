@@ -131,6 +131,63 @@ class IndexedDBStorageManager {
     }
   }
 
+  async renameRoom(oldRoomId: string, newRoomId: string): Promise<void> {
+    try {
+      const db = await this.getDB();
+      
+      // Check if new room ID already exists
+      const existingRoom = await db.get(STORES.ROOMS, newRoomId);
+      if (existingRoom) {
+        throw new Error(`Room "${newRoomId}" already exists`);
+      }
+
+      // Get old room data
+      const oldRoomData = await db.get(STORES.ROOM_DATA, oldRoomId);
+      const oldLastSaved = await db.get(STORES.ROOM_LAST_SAVED, oldRoomId);
+
+      // Create new room entry
+      const newRoomData: RoomData = {
+        id: newRoomId,
+        name: newRoomId,
+        createdAt: Date.now(),
+      };
+
+      // Start transaction
+      const tx = db.transaction([STORES.ROOMS, STORES.ROOM_DATA, STORES.ROOM_LAST_SAVED], 'readwrite');
+      
+      // Add new room
+      await tx.objectStore(STORES.ROOMS).add(newRoomData);
+      
+      // Copy room data if exists
+      if (oldRoomData) {
+        const newRoomDrawingData: RoomDrawingData = {
+          ...oldRoomData,
+          roomId: newRoomId,
+        };
+        await tx.objectStore(STORES.ROOM_DATA).add(newRoomDrawingData);
+      }
+      
+      // Copy last saved timestamp if exists
+      if (oldLastSaved) {
+        const newLastSaved: RoomLastSaved = {
+          ...oldLastSaved,
+          roomId: newRoomId,
+        };
+        await tx.objectStore(STORES.ROOM_LAST_SAVED).add(newLastSaved);
+      }
+
+      // Delete old room data
+      await tx.objectStore(STORES.ROOMS).delete(oldRoomId);
+      await tx.objectStore(STORES.ROOM_DATA).delete(oldRoomId);
+      await tx.objectStore(STORES.ROOM_LAST_SAVED).delete(oldRoomId);
+      
+      await tx.done;
+    } catch (error) {
+      console.error('Error renaming room:', error);
+      throw error;
+    }
+  }
+
   // Drawing data management
   async saveDrawingData(roomId: string, data: DrawingData): Promise<void> {
     try {

@@ -45,10 +45,22 @@ export function useRooms() {
     }
   }, []);
 
+  const renameRoom = useCallback(async (oldRoomId: string, newRoomId: string) => {
+    try {
+      await StorageManager.renameRoom(oldRoomId, newRoomId);
+      const updatedRooms = await StorageManager.getRooms();
+      setRooms(updatedRooms);
+    } catch (error) {
+      console.error('Error renaming room:', error);
+      throw error;
+    }
+  }, []);
+
   return {
     rooms,
     isLoading,
     createRoom,
     deleteRoom,
+    renameRoom,
   };
 } 

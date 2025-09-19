@@ -10,11 +10,14 @@ export function HomePage() {
   const [roomId, setRoomId] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<string>('');
+  const [roomToEdit, setRoomToEdit] = useState<string>('');
+  const [newRoomName, setNewRoomName] = useState<string>('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [roomData, setRoomData] = useState<Record<string, { hasData: boolean; lastSaved: string | null }>>({});
-  const { rooms, isLoading, createRoom, deleteRoom } = useRooms();
+  const { rooms, isLoading, createRoom, deleteRoom, renameRoom } = useRooms();
 
   // Load room data for display
   useEffect(() => {
@@ -75,6 +78,32 @@ export function HomePage() {
   const cancelDeleteRoom = useCallback(() => {
     setShowDeleteModal(false);
     setRoomToDelete('');
+  }, []);
+
+  const handleEditRoom = useCallback((roomToEdit: string) => {
+    setRoomToEdit(roomToEdit);
+    setNewRoomName(roomToEdit);
+    setShowEditModal(true);
+  }, []);
+
+  const handleRenameRoom = useCallback(async () => {
+    if (newRoomName.trim() && newRoomName.trim() !== roomToEdit) {
+      try {
+        await renameRoom(roomToEdit, newRoomName.trim());
+        setShowEditModal(false);
+        setRoomToEdit('');
+        setNewRoomName('');
+      } catch (error) {
+        console.error('Error renaming room:', error);
+        // You could add a toast notification here
+      }
+    }
+  }, [newRoomName, roomToEdit, renameRoom]);
+
+  const cancelEditRoom = useCallback(() => {
+    setShowEditModal(false);
+    setRoomToEdit('');
+    setNewRoomName('');
   }, []);
 
   // Reset page if search changes
@@ -169,6 +198,39 @@ export function HomePage() {
         </div>
       )}
 
+      {/* Modal for editing room */}
+      {showEditModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2 className="modal-title">แก้ไขชื่อห้อง</h2>
+            <input
+              type="text"
+              value={newRoomName}
+              onChange={e => setNewRoomName(e.target.value)}
+              placeholder="ชื่อห้องใหม่"
+              className="modal-input"
+              onKeyDown={e => e.key === 'Enter' && handleRenameRoom()}
+              autoFocus
+            />
+            <div className="modal-buttons">
+              <button
+                onClick={cancelEditRoom}
+                className="modal-btn"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleRenameRoom}
+                disabled={!newRoomName.trim() || newRoomName.trim() === roomToEdit}
+                className="modal-btn modal-btn-primary"
+              >
+                บันทึก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search and List */}
       <div className="search-section">
         <h3 className="search-title">ห้องที่มีอยู่</h3>
@@ -211,6 +273,12 @@ export function HomePage() {
                   >
                     เข้าห้อง
                   </Link>
+                  <button
+                    onClick={() => handleEditRoom(room)}
+                    className="room-btn room-btn-secondary"
+                  >
+                    แก้ไข
+                  </button>
                   <button
                     onClick={() => handleDeleteRoom(room)}
                     className="room-btn room-btn-danger"
