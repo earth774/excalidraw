@@ -1,7 +1,8 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDrawingData } from '../hooks';
 import { UI_CONSTANTS } from '../constants';
+import { useAuth } from '../context/AuthContext';
 import type { DrawingData, StoredFileMeta } from '../types';
 // Use generic types to avoid complex Excalidraw type imports
 type ExcalidrawElement = unknown;
@@ -27,6 +28,13 @@ export function RoomPage({ roomId }: RoomPageProps) {
     loadDrawingData,
     saveDrawingData,
   } = useDrawingData(roomId);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   // Load initial data
   useEffect(() => {
@@ -89,11 +97,12 @@ export function RoomPage({ roomId }: RoomPageProps) {
           zIndex: 1000,
           background: 'rgba(255, 255, 255, 0.95)',
           padding: '0.5rem 1rem',
-          borderRadius: '4px',
+          borderRadius: '8px',
           border: '1px solid #ddd',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           display: 'flex',
           alignItems: 'center',
+          gap: '1rem',
           minWidth: 'unset',
           height: '40px',
           // Hide on mobile (max-width: 600px)
@@ -114,6 +123,36 @@ export function RoomPage({ roomId }: RoomPageProps) {
         >
           ← กลับไปหน้าหลัก
         </Link>
+        <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>|</span>
+        <span style={{ color: '#374151', fontSize: '0.85rem', fontWeight: '500' }}>
+          {user?.email}
+        </span>
+        <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>|</span>
+        <button
+          onClick={handleLogout}
+          style={{
+            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '0.375rem 0.75rem',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 2px 4px rgba(239, 68, 68, 0.3)';
+          }}
+        >
+          ออกจากระบบ
+        </button>
       </div>
       
       <Suspense fallback={

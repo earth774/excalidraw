@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useRooms } from '../hooks';
 import { StorageManager } from '../utils';
+import { useAuth } from '../context/AuthContext';
 import './HomePage.css';
 
 const ROOMS_PER_PAGE = 10;
@@ -18,6 +19,8 @@ export function HomePage() {
   const [page, setPage] = useState(1);
   const [roomData, setRoomData] = useState<Record<string, { hasData: boolean; lastSaved: string | null }>>({});
   const { rooms, isLoading, createRoom, deleteRoom, renameRoom } = useRooms();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   // Load room data for display
   useEffect(() => {
@@ -112,6 +115,11 @@ export function HomePage() {
     setPage(1);
   };
 
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
   if (isLoading) {
     return (
       <div className="container">
@@ -124,10 +132,20 @@ export function HomePage() {
 
   return (
     <div className="container">
+      {/* User Header */}
+      <div className="user-header">
+        <div className="user-info">
+          <span className="user-email">{user?.email}</span>
+        </div>
+        <button onClick={handleLogout} className="logout-btn">
+          ออกจากระบบ
+        </button>
+      </div>
       {/* Header and Create Room Button */}
       <div className="header-section">
         <h1 className="header-title">
-          <span style={{ marginRight: 8 }}>🎨</span> Excalidraw Local Room
+          <span className="header-emoji">🎨</span>
+          <span className="header-text">Excalidraw Local Room</span>
         </h1>
         <button
           onClick={() => setShowModal(true)}
@@ -256,7 +274,7 @@ export function HomePage() {
                 className="room-card"
               >
                 <div className="room-info">
-                  <span className="room-name">{room}</span>
+                  <span className="room-name">🎨 {room}</span>
                   {roomInfo?.hasData && (
                     <div className="room-meta">
                       💾 มีข้อมูลบันทึกไว้

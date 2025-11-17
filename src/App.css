@@ -11,7 +11,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8f9fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
 }
 
 /* Button hover effects */
@@ -31,23 +32,7 @@ a:hover {
   transition: opacity 0.2s ease;
 }
 
-/* Input focus effects */
-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-  transition: all 0.2s ease;
-}
-
-/* Room card hover effects */
-.room-card {
-  transition: all 0.2s ease;
-}
-
-.room-card:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
+/* Input focus effects - overridden by component-specific styles */
 
 /* Loading animation */
 @keyframes spin {
